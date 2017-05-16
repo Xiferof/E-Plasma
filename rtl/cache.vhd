@@ -7,7 +7,7 @@
 -- COPYRIGHT: Software placed into the public domain by the author.
 --    Software 'as is' without warranty.  Author liable for nothing.
 -- DESCRIPTION:
---    4KB unified cache that uses the lower 4KB of the 8KB cache_ram.  
+--    4KB unified cache that uses the lower 4KB of the 8KB cache_ram.
 --    Only lowest 2MB of DDR is cached.
 ---------------------------------------------------------------------
 library ieee;
@@ -25,7 +25,7 @@ entity cache is
         byte_we_next   		: in  std_logic_vector(3 downto 0);
         cpu_address    		: in  std_logic_vector(31 downto 2);
         mem_busy       		: in  std_logic;
-		
+
 		cache_ram_enable  	: in  std_logic;
 		cache_ram_byte_we 	: in  std_logic_vector(3 downto 0);
 		cache_ram_address 	: in  std_logic_vector(31 downto 2);
@@ -35,7 +35,7 @@ entity cache is
         cache_access   		: out std_logic;   --access 4KB cache
         cache_checking 		: out std_logic;   --checking if cache hit
         cache_miss     		: out std_logic    --cache miss
-	);  
+	);
 end; --cache
 
 architecture logic of cache is
@@ -56,8 +56,8 @@ architecture logic of cache is
 	signal cache_we         : std_logic;
 begin
 
-	cache_proc: process(clk, reset, mem_busy, cache_address, 
-		state_reg, state, state_next, 
+	cache_proc: process(clk, reset, mem_busy, cache_address,
+		state_reg, state, state_next,
 		address_next, byte_we_next, cache_tag_in, --Stage1
 		cache_tag_reg, cache_tag_out,             --Stage2
 		cpu_address) --Stage3
@@ -66,7 +66,7 @@ begin
 		case state_reg is
 			when STATE_IDLE =>            --cache idle
 				cache_checking <= '0';
-				cache_miss <= '0'; 
+				cache_miss <= '0';
 				state <= STATE_IDLE;
 			when STATE_CHECKING =>        --current read in cached range, check if match
 				cache_checking <= '1';
@@ -100,7 +100,7 @@ begin
 		end case; --state
 
 		if state = STATE_IDLE then    --check if next access in cached range
-			cache_address <= '0' & address_next(11 downto 2);
+			cache_address <=  address_next(12 downto 2);
 			if address_next(30 downto 21) = "0100000000" then  --first 2MB of DDR
 				cache_access <= '1';
 				if byte_we_next = "0000" then     --read cycle
@@ -116,7 +116,7 @@ begin
 				state_next <= STATE_IDLE;
 			end if;
 		else
-			cache_address <= '0' & cpu_address(11 downto 2);
+			cache_address <= cpu_address(12 downto 2);
 			cache_access <= '0';
 			if state = STATE_MISSED then
 				cache_we <= '1';                  --update cache tag
@@ -127,7 +127,7 @@ begin
 		end if;
 
 		if byte_we_next = "0000" or byte_we_next = "1111" then  --read or 32-bit write
-			cache_tag_in <= address_next(20 downto 12);
+			cache_tag_in <= address_next(21 downto 13);
 		else
 			cache_tag_in <= ONES(8 downto 0);  --invalid tag
 		end if;
@@ -214,7 +214,7 @@ begin
 			INIT_38 => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
 			INIT_39 => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
 			INIT_3A => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-			INIT_3B => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",    
+			INIT_3B => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
 			INIT_3C => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
 			INIT_3D => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
 			INIT_3E => X"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
@@ -235,16 +235,16 @@ begin
 		)
 		port map (
 			DO   => cache_tag_out(7 downto 0),
-			DOP  => cache_tag_out(8 downto 8), 
+			DOP  => cache_tag_out(8 downto 8),
 			ADDR => cache_address,             --registered
-			CLK  => clk, 
+			CLK  => clk,
 			DI   => cache_tag_in(7 downto 0),  --registered
 			DIP  => cache_tag_in(8 downto 8),
 			EN   => '1',
 			SSR  => ZERO(0),
 			WE   => cache_we
 		);
-		 
+
 	cache_data: cache_ram     -- cache data storage
 		port map (
 			clk               => clk,
@@ -256,4 +256,3 @@ begin
 		);
 
 end; --logic
-

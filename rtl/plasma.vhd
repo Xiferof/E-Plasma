@@ -45,18 +45,18 @@ entity plasma is
 	port(
 		clk          : in std_logic;
 		reset        : in std_logic;
-	
+
         uart_write   : out std_logic;
         uart_read    : in std_logic;
-	
+
         address      : out std_logic_vector(31 downto 2);
-        byte_we      : out std_logic_vector(3 downto 0); 
+        byte_we      : out std_logic_vector(3 downto 0);
         data_write   : out std_logic_vector(31 downto 0);
         data_read    : in std_logic_vector(31 downto 0);
         mem_pause_in : in std_logic;
         no_ddr_start : out std_logic;
         no_ddr_stop  : out std_logic;
-		
+
         gpio0_out    : out std_logic_vector(31 downto 0);
         gpioA_in     : in std_logic_vector(31 downto 0)
 	);
@@ -94,7 +94,7 @@ architecture logic of plasma is
 	signal cache_ram_address : std_logic_vector(31 downto 2);
 	signal cache_ram_data_w  : std_logic_vector(31 downto 0);
 	signal cache_ram_data_r  : std_logic_vector(31 downto 0);
-   
+
 	signal boot_ram_enable   : std_logic;
 	signal boot_ram_byte_we  : std_logic_vector(3 downto 0);
 	signal boot_ram_address  : std_logic_vector(31 downto 2);
@@ -114,7 +114,7 @@ begin  --architecture
 		cache_miss or                                                    --Cache wait
 		(cpu_address(28) and not cache_hit and mem_busy);                --DDR
 	irq_status <= gpioA_in(31) & not gpioA_in(31) &
-                counter_reg(31) & not counter_reg(31) & 
+                counter_reg(31) & not counter_reg(31) &
                 counter_reg(18) & not counter_reg(18) &
                 not uart_write_busy & uart_data_avail;
 	irq <= '1' when (irq_status and irq_mask_reg) /= ZERO(7 downto 0) else '0';
@@ -132,7 +132,7 @@ begin  --architecture
 			clk          => clk,
 			reset_in     => reset,
 			intr_in      => irq,
- 
+
 			address_next => address_next,             --before rising_edge(clk)
 			byte_we_next => byte_we_next,
 
@@ -148,7 +148,7 @@ begin  --architecture
 			cache_checking <= '0';
 			cache_miss <= '0';
 		end generate;
-   
+
 	opt_cache2: if use_cache = '1' generate
 	-- 4KB unified cache. Only lowest 2MB of DDR is cached.
 	u_cache: cache       -- check check unit
@@ -159,17 +159,17 @@ begin  --architecture
 			byte_we_next   => byte_we_next,
 			cpu_address    => cpu_address(31 downto 2),
 			mem_busy       => mem_busy,
-		 
+
 			cache_ram_enable  => cache_ram_enable,
 			cache_ram_byte_we => cache_ram_byte_we,
 			cache_ram_address => cache_ram_address,
 			cache_ram_data_w  => cache_ram_data_w,
 			cache_ram_data_r  => cache_ram_data_r,
-		 
+
 			cache_access   => cache_access,    --access 4KB cache
 			cache_checking => cache_checking,  --checking if cache hit
 			cache_miss     => cache_miss
-		);     --cache miss    
+		);     --cache miss
 	end generate; --opt_cache2
 
 	no_ddr_start <= cache_checking;
@@ -206,11 +206,11 @@ begin  --architecture
 						cpu_data_r <= gpioA_in;
 					when "110" =>      --counter
 						if ( cpu_address(3) = '1' ) then
-							cpu_data_r     <= counter_reg(31 downto  0);    
+							cpu_data_r     <= counter_reg(31 downto  0);
 							save_cnt_hi    := true;
 						else
 							cpu_data_r(counter_hi_reg'length-1 downto 0) <= counter_hi_reg;
-							cpu_data_r(31 downto counter_hi_reg'length)  <= (others=>'0');        
+							cpu_data_r(31 downto counter_hi_reg'length)  <= (others=>'0');
 						end if;
 					when others =>
 						cpu_data_r <= gpioA_in;
@@ -237,7 +237,7 @@ begin  --architecture
 				end if;
 			end if;
 			counter_reg <= bv_inc(counter_reg);
-			if (save_cnt_hi = true ) then 
+			if (save_cnt_hi = true ) then
 				counter_hi_reg <= counter_reg(39 downto 32);
 			end if;
 		end if;
@@ -250,12 +250,12 @@ begin  --architecture
 		if cache_access = '1' then    --Check if cache hit or write through
 			cache_ram_enable <= '1';
 			cache_ram_byte_we <= byte_we_next;
-			cache_ram_address(31 downto 2) <= ZERO(31 downto 12) & address_next(11 downto 2);
+			cache_ram_address(31 downto 2) <= ZERO(31 downto 13) & address_next(12 downto 2);
 			cache_ram_data_w <= cpu_data_w;
 		elsif cache_miss = '1' then  --Update cache after cache miss
 			cache_ram_enable <= '1';
 			cache_ram_byte_we <= "1111";
-			cache_ram_address(31 downto 2) <= ZERO(31 downto 12) & address_next(11 downto 2);
+			cache_ram_address(31 downto 2) <= ZERO(31 downto 13) & address_next(12 downto 2);
 			cache_ram_data_w <= data_read;
 		else                         --Disable cache ram when Normal non-cache access
 			cache_ram_enable <= '0';
@@ -270,7 +270,7 @@ begin  --architecture
 	boot_ram_address(31 downto 2) <= address_next(31 downto 2);
 	boot_ram_data_w <= cpu_data_w;
 
-	u2_boot_ram: boot_ram 
+	u2_boot_ram: boot_ram
 		port map (
 			clk               => clk,
 			enable            => boot_ram_enable,
@@ -287,7 +287,7 @@ begin  --architecture
 			BAUD_RATE_BPS 	=> 230400.0
 		)
 		port map(
-			clk          => clk,		
+			clk          => clk,
 			reset        => reset,
 			enable_read  => enable_uart_read,
 			enable_write => enable_uart_write,
@@ -305,4 +305,3 @@ begin  --architecture
 		gpio0_out(28 downto 24) <= ZERO(28 downto 24);
 
 end; --architecture logic
-
